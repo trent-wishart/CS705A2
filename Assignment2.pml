@@ -9,16 +9,20 @@ assign
 
 */
 
-bit ready1 = 0;
 bit sat;
 
 byte num_processes = 5;
-byte num_processes_ex = num_processes+1;
+int proc_count;
 
 byte cs_user; //Process inside CS
-byte processes[num_processes];
+//byte processes[num_processes];
 byte accessed[num_processes]; 
 byte mutex; 
+
+bit ready1 = 0;
+bit ready2 = 0;
+bit ready_array[num_processes];
+bit master_ready = 0;
 
 byte step[num_processes];
 byte pos[num_processes];
@@ -30,40 +34,43 @@ ltl Safety_Property1 {[](mutex != 2)}
 //ltl Liveness_Property2 {[]<> (req[1] == 1 -> cs_user == 1)}
 
 
-proctype P(int i){
+proctype P(byte id){
 
-
-	int j;
-	int k;
+	//ready_array[i-1] = 0;
+	byte j;
+	byte k;
 	ready1;
 
 
-	for (j : 1 .. num_processes) {
-		//printf("here");
-		pos[i-1] = j;
-		step[j-1] = i;
-		printf("\ni = %d, j = %d, pos[i] = %d, step[j] = %d\n", i, j, pos[i-1], step[j-1]);
-
-		do
-		:: skip ->	for (k : 1 .. num_processes){
-				if
-				:: (k == i) -> skip;
-				:: else -> 	if
-							:: ((pos[k-1] < j) && (step[j-1] != i)) -> sat = 1; break;
-							fi
-				fi
-			}
-		od
+	d_step{	
+		run updatePos(id);
 	}
+		
+	
+
+	run sync();
+
+	master_ready;
+	printf("\nproc %d is ready\n\n", id);
+
+
+	do
+	:: skip ->	for (k : 1 .. num_processes){
+			if
+			:: (k == id) -> skip;
+			:: else -> 	if
+						:: ((pos[k-1] < j) && (step[j-1] != id)) -> sat = 1; break;
+						fi
+			fi
+		}
+	od
 
 	mutex++;
-	run cs(i);
+	cs_user = id;
+	run cs(id);
 	mutex--;
 
-	pos[i] = 0;
-
-
-
+	pos[id] = 0;
 }
 
 
@@ -76,12 +83,69 @@ proctype cs(byte id){
 	mutex--;
 }
 
+proctype updatePos(byte i){
+	d_step{
+	d_step{
+		byte it;
+		for (it : 0 .. num_processes-1) {
+			printf("\nBEFORE: from process %d, pos[%d] = %d\n", i, it, pos[it]);
+		}
+	}
+	d_step{
+		printf("\nproc %d is updating\n\n", i);
+		run shifter(0);
+	}
+	d_step{
+		pos[0] = i;
+		ready_array[i-1] = 1;
+	}
+	d_step{
+		byte it;
+		for (it : 0 .. num_processes-1) {
+			printf("\nAFTER: from process %d, pos[%d] = %d\n", i, it, pos[it]);
+		}
+	}
+}
+}
+
+proctype sync(){
+	d_step{
+		byte it;
+		master_ready = 1;
+
+		for (it : 0 .. num_processes - 1){
+			if
+			:: ready_array[it] != 1 -> master_ready = 0; 
+			:: else -> skip;
+			fi
+		}
+		//printf("\nmaster_ready = %d\n\n", master_ready);
+	}
+}
+
+proctype shifter(bit op){
+	//MUST BE USED WHEN END ELEMENT IS EMPTY as you will lose the last element
+	//op 0 = pos
+	//op 1 = step
+	//d_step{
+		byte it;
+		if
+		:: op == 0 -> 	for (it : 0 .. num_processes - 2){
+						pos[num_processes - 1 - it] = pos[num_processes - 2 - it];
+						}
+		:: op == 1 ->	for (it : 0 .. num_processes - 2){
+						step[num_processes - 1 - it] = step[num_processes - 2 - it];
+						}
+		:: else -> skip;
+		fi
+	//}
+}
+
 proctype initialise(){
 	 	
-		int i;
-		for (i : 1 .. num_processes) {
-			run P(i); 
-			printf("\nProcess %d created\n", i);
+		for (proc_count : 1 .. num_processes) {
+			run P(proc_count); 
+			//printf("\nProcess %d created\n", proc_count);
 
 		}
 		ready1 = 1;
@@ -89,6 +153,34 @@ proctype initialise(){
 
 init {
 	d_step{run initialise();}
-	}
+	
 }
 
+/*
+
+	d_step{
+		int it
+		for (it : 0 .. num_processes-1) {
+			printf("\nfrom process %d, pos[%d] = %d\n", i, pos[it], pos[it]);
+		}
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+	int j;
+	for (j : 1 .. num_processes) {
+		//printf("here");
+		pos[i-1] = j;
+		step[j-1] = i;
+		printf("\ni = %d, j = %d, pos[i] = %d, step[j] = %d\n", i, j, pos[i-1], step[j-1]);
+
+	}*/
