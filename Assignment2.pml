@@ -100,7 +100,18 @@ proctype updatePos(byte i){
 		d_step{
 			printf("\nproc %d is updating\n\n", i);
 			d_step{
-				run shifter(0);
+				byte it;
+				byte new[num_processes];
+				printf("\nproc is shifting\n\n");
+
+ 				for (it : 0 .. num_processes - 2){
+					new[it+1] = pos[it];
+					printf("\na\n");
+				}
+				for (it : 0 .. num_processes - 1){
+					pos[it] = new[it];
+					printf("\nb\n");
+				}		
 			}
 		}
 		d_step{
