@@ -85,27 +85,27 @@ proctype cs(byte id){
 
 proctype updatePos(byte i){
 	d_step{
-	d_step{
-		byte it;
-		for (it : 0 .. num_processes-1) {
-			printf("\nBEFORE: from process %d, pos[%d] = %d\n", i, it, pos[it]);
+		d_step{
+			byte it;
+			for (it : 0 .. num_processes-1) {
+				printf("\nBEFORE: from process %d, pos[%d] = %d\n", i, it, pos[it]);
+			}
+		}
+		d_step{
+			printf("\nproc %d is updating\n\n", i);
+			run shifter(0);
+		}
+		d_step{
+			pos[0] = i;
+			ready_array[i-1] = 1;
+		}
+		d_step{
+			byte it;
+			for (it : 0 .. num_processes-1) {
+				printf("\nAFTER: from process %d, pos[%d] = %d\n", i, it, pos[it]);
+			}
 		}
 	}
-	d_step{
-		printf("\nproc %d is updating\n\n", i);
-		run shifter(0);
-	}
-	d_step{
-		pos[0] = i;
-		ready_array[i-1] = 1;
-	}
-	d_step{
-		byte it;
-		for (it : 0 .. num_processes-1) {
-			printf("\nAFTER: from process %d, pos[%d] = %d\n", i, it, pos[it]);
-		}
-	}
-}
 }
 
 proctype sync(){
@@ -127,19 +127,25 @@ proctype shifter(bit op){
 	//MUST BE USED WHEN END ELEMENT IS EMPTY as you will lose the last element
 	//op 0 = pos
 	//op 1 = step
-	//d_step{
 		byte it;
+		byte new[num_processes];
+		printf("\nproc is shifting\n\n");
+	
 		if
 		:: op == 0 -> 	for (it : 0 .. num_processes - 2){
-						pos[num_processes - 1 - it] = pos[num_processes - 2 - it];
+							new[it+1] = pos[it];
+							printf("\na\n");
 						}
+						op = new;
+							
 		:: op == 1 ->	for (it : 0 .. num_processes - 2){
-						step[num_processes - 1 - it] = step[num_processes - 2 - it];
+						new[it+1] = step[it];
 						}
+						step = new;
 		:: else -> skip;
 		fi
-	//}
 }
+
 
 proctype initialise(){
 	 	
