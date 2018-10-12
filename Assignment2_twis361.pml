@@ -10,7 +10,7 @@ assign
 */
 
 bit sat;
-
+byte j;
 byte num_processes = 5;
 int proc_count;
 
@@ -30,43 +30,63 @@ byte pos[num_processes];
 //LTL Properties
 
 //ltl Safety_Property1 {[](mutex != 2)}
-//ltl Test {[] mutex >= 1}
 //ltl Liveness_Property2 {[]<> (req[1] == 1 -> cs_user == 1)}
 
 
 proctype P(byte id){
 
 	//ready_array[i-1] = 0;
-	byte j;
+	byte it;
 	byte k;
+	byte my_score;
 	ready1;
 	run updatePos(id);
 	run sync();
 	master_ready;
 
 	do
-	:: skip ->	for (k : 1 .. num_processes){
+	:: skip ->	for (it : 0 .. num_processes-1){ //Find highest step index that contains an id
 					if
-					:: (k == id) -> skip;
-					:: else -> 	if
-								:: ((pos[k-1] < j) && (step[j-1] != id)) -> sat = 1; break;
-								fi
-					fi
+					:: ((step[it] > 0) && (j < step[it])) -> j = it;
+					:: else -> skip;
+					fi 
 				}
+				for (it : 0 .. num_processes-1){//Find this ids position
+					if
+					:: (pos[it] == id ) -> my_score = it;
+					:: else -> skip;
+					fi 
+				}
+					if
+					:: my_score == j -> sat = 1; break;
+					:: else -> skip;	
+					fi
+				
 	od
 
-	mutex++;
-	cs_user = id;
-	run cs(id);
-	mutex--;
 
-	pos[id] = 0;
+	//d_step{
+		printf("\nA mutex %d\n\n", mutex);
+		mutex++;
+		printf("\nB mutex %d\n\n", mutex);
+		cs_user = id;
+		run cs(id);
+		mutex--;
+		printf("\nC mutex %d\n\n", mutex);
+
+		run updatePos2(id);
+	//}
+	/*
+	pos[num_processes-1] = 0;
+	step[num_processes-1] = 0;
+	j--;
+	*/
 }
 
 proctype cs(byte id){
 	//this is the critical section, this is the only place that accesses the variable accessed[]
-	accessed[id] = accessed[id] + 1;
-	printf("\nprocess %d has reached %d\n\n", id, accessed[id]);
+	accessed[id-1] = accessed[id-1] + 1;
+	printf("\nprocess %d has reached %d\n\n", id, accessed[id-1]);
 }
 
 proctype updatePos(byte i){
@@ -81,7 +101,50 @@ proctype updatePos(byte i){
 			pos[it] = new[it];
 		}		
 		pos[0] = i;
+
+
+
+
+
+		for (it : 0 .. num_processes - 2){
+			new[it+1] = step[it]+1;
+		}
+		for (it : 0 .. num_processes - 1){
+			step[it] = new[it];
+		}		
+		step[0] = 1;
+
 		ready_array[i-1] = 1;
+
+	}	
+}
+
+proctype updatePos2(byte i){
+	d_step{
+		byte it;
+		byte new[num_processes];
+
+		for (it : 0 .. num_processes - 2){
+			new[it+1] = pos[it];
+		}
+		for (it : 0 .. num_processes - 1){
+			pos[it] = new[it];
+		}		
+		pos[0] = i;
+
+
+
+
+
+		for (it : 0 .. num_processes - 2){
+			new[it+1] = step[it];
+		}
+		for (it : 0 .. num_processes - 1){
+			step[it] = new[it];
+		}		
+
+		ready_array[i-1] = 1;
+
 	}	
 }
 
@@ -142,6 +205,32 @@ init {
 	}*/
 
 
+
+
+
+/*
+
+do
+	:: skip ->	for (it : 0 .. num_processes-1){ //Find highest step index that contains an id
+					if
+					:: ((step[it] > 0) && (j < step[it])) -> j = it;
+					:: else -> skip;
+					fi 
+				}
+				for (it : 0 .. num_processes-1){//Find this ids position
+					if
+					:: (pos[it] == id ) -> my_score = it;
+					:: else -> skip;
+					fi 
+				}
+					if
+					:: my_score == j -> sat = 1; goto end;	
+					:: else -> skip;	
+					fi
+				
+	od
+
+	*/
 
 
 
