@@ -17,7 +17,7 @@ int proc_count;
 byte cs_user; //Process inside CS
 //byte processes[num_processes];
 byte accessed[num_processes]; 
-byte mutex; 
+byte mutex = 0; 
 
 bit ready1 = 0;
 bit ready2 = 0;
@@ -29,7 +29,7 @@ byte pos[num_processes];
 
 //LTL Properties
 
-ltl Safety_Property1 {[](mutex != 2)}
+//ltl Safety_Property1 {[](mutex != 2)}
 //ltl Test {[] mutex >= 1}
 //ltl Liveness_Property2 {[]<> (req[1] == 1 -> cs_user == 1)}
 
@@ -41,28 +41,34 @@ proctype P(byte id){
 	byte k;
 	ready1;
 
+d_step{
 
-	d_step{	
-		run updatePos(id);
-	}
-		
-	
+	mutex++;
+	printf("here %d", mutex);
+	if 
+	:: mutex == 1 -> printf("i am %d",id); run updatePos(id);
+	fi
+	mutex--;	
+}
 
 	run sync();
-
 	master_ready;
+
+
+
+
 	printf("\nproc %d is ready\n\n", id);
 
 
 	do
 	:: skip ->	for (k : 1 .. num_processes){
-			if
-			:: (k == id) -> skip;
-			:: else -> 	if
-						:: ((pos[k-1] < j) && (step[j-1] != id)) -> sat = 1; break;
-						fi
-			fi
-		}
+					if
+					:: (k == id) -> skip;
+					:: else -> 	if
+								:: ((pos[k-1] < j) && (step[j-1] != id)) -> sat = 1; break;
+								fi
+					fi
+				}
 	od
 
 	mutex++;
@@ -93,7 +99,9 @@ proctype updatePos(byte i){
 		}
 		d_step{
 			printf("\nproc %d is updating\n\n", i);
-			run shifter(0);
+			d_step{
+				run shifter(0);
+			}
 		}
 		d_step{
 			pos[0] = i;
@@ -136,12 +144,18 @@ proctype shifter(bit op){
 							new[it+1] = pos[it];
 							printf("\na\n");
 						}
-						op = new;
+						for (it : 0 .. num_processes - 1){
+							pos[it] = new[it];
+							printf("\nb\n");
+						}
 							
 		:: op == 1 ->	for (it : 0 .. num_processes - 2){
 						new[it+1] = step[it];
 						}
-						step = new;
+						for (it : 0 .. num_processes - 1){
+							step[it] = new[it];
+							printf("\nb\n");
+						}	
 		:: else -> skip;
 		fi
 }
@@ -156,6 +170,7 @@ proctype initialise(){
 		}
 		ready1 = 1;
 }
+
 
 init {
 	d_step{run initialise();}
