@@ -1,0 +1,31 @@
+never Safety_Property {    /* !([] ((mutex!=2))) */
+T0_init:
+	do
+	:: atomic { (! (((mutex!=2)))) -> assert(!(! (((mutex!=2))))) }
+	:: (1) -> goto T0_init
+	od;
+accept_all:
+	skip
+}
+never Liveness_Property {    /* !([] (<> ((cs_user==1)))) */
+T0_init:
+	do
+	:: (! (((cs_user==1)))) -> goto accept_S4
+	:: (1) -> goto T0_init
+	od;
+accept_S4:
+	do
+	:: (! (((cs_user==1)))) -> goto accept_S4
+	od;
+}
+never Liveness_Property2 {    /* !([] (<> ((! ((cs_user==1))) || ((cs_user!=1))))) */
+T0_init:
+	do
+	:: (! (((! ((cs_user==1))) || ((cs_user!=1))))) -> goto accept_S4
+	:: (1) -> goto T0_init
+	od;
+accept_S4:
+	do
+	:: (! (((! ((cs_user==1))) || ((cs_user!=1))))) -> goto accept_S4
+	od;
+}

@@ -5,8 +5,9 @@ byte pos[num_processes];
 /****************
 LTL Properties
 *****************/
-ltl Safety_Property1 {[](mutex != 2)}
-ltl Liveness_Property2 {[]<> (cs_user == 1)}
+ltl Safety_Property {[](mutex != 2)}
+ltl Liveness_Property {[]<> (cs_user == 1)}
+ltl Liveness_Property2 {[]<> (cs_user == 1 -> cs_user != 1)}
 
 
 /*
@@ -77,7 +78,7 @@ proctype P(byte id){
 	//Update for next process
 	run updatePos2(id);
 
-	//Could use a goto here to co back to the top if needed for multiple cycles (breif doesnt say so?)
+	//Could use a goto here to go back to the top if needed for multiple cycles (breif doesnt say so?)
 }
 
 proctype cs(byte id){
@@ -117,45 +118,41 @@ proctype updatePos(byte i){
 
 proctype updatePos2(byte i){
 	//this proctype is used when updating
-	d_step{
-		byte it;
-		byte new[num_processes];
+	byte it;
+	byte new[num_processes];
 
-		//Updates Pos
-		for (it : 0 .. num_processes - 2){
-			new[it+1] = pos[it];
-		}
-		for (it : 0 .. num_processes - 1){
-			pos[it] = new[it];
-		}		
-		pos[0] = i;
+	//Updates Pos
+	for (it : 0 .. num_processes - 2){
+		new[it+1] = pos[it];
+	}
+	for (it : 0 .. num_processes - 1){
+		pos[it] = new[it];
+	}		
+	pos[0] = i;
 
-		//Updates step
-		for (it : 0 .. num_processes - 2){
-			new[it+1] = step[it];
-		}
-		for (it : 0 .. num_processes - 1){
-			step[it] = new[it];
-		}		
+	//Updates step
+	for (it : 0 .. num_processes - 2){
+		new[it+1] = step[it];
+	}
+	for (it : 0 .. num_processes - 1){
+		step[it] = new[it];
+	}		
 
-		ready_array[i-1] = 1;
-	}	
+	ready_array[i-1] = 1;
 }
 
 proctype sync(){
 	//Synchronises the processes when initialising pos and step
-	d_step{
-		byte it;
-		master_ready = 1;
+	byte it;
+	master_ready = 1;
 
-		for (it : 0 .. num_processes - 1){
-			if
-			:: ready_array[it] != 1 -> master_ready = 0; 
-			:: else -> skip;
-			fi
-		}
+	for (it : 0 .. num_processes - 1){
+		if
+		:: ready_array[it] != 1 -> master_ready = 0; 
+		:: else -> skip;
+		fi
 	}
-}
+	}
 
 proctype initialise(){	
 	//initalise num_processes of process P
@@ -166,5 +163,5 @@ proctype initialise(){
 }
 
 init {
-	d_step{run initialise();}
+	run initialise();
 }
